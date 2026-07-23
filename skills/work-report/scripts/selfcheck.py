@@ -8,6 +8,7 @@
  3. SVG 文本溢出估算（中文≈字号px/字，拉丁数字≈0.55×字号，middle 两侧各留6px）
  4. 无 TODO/FIXME/{{}} 占位；SVG 文本无裸 &
  5. code 元素 overflow-wrap（模板 CSS 全局已保证，验证样式存在）
+ 6. figure.diagram 结构：svg 必须由 <div class="scroll"> 包裹（灯箱 JS 只绑定 figure.diagram .scroll）
 """
 import sys, re, io, unicodedata
 
@@ -122,6 +123,11 @@ def check(path):
     # 5 code overflow-wrap
     if 'overflow-wrap:break-word' not in html:
         errs.append('code 缺 overflow-wrap:break-word')
+
+    # 6 figure.diagram 结构：svg 必须由 div.scroll 包裹（灯箱 JS 只绑定 figure.diagram .scroll）
+    for fi, fig in enumerate(re.findall(r'<figure class="diagram"[^>]*>.*?</figure>', html, re.S)):
+        if '<svg' in fig and not re.search(r'<div class="scroll"[^>]*>\s*<svg', fig, re.S):
+            errs.append('figure.diagram#%d 的 svg 缺 <div class="scroll"> 包裹（灯箱/横滚/悬浮提示全失效）' % (fi + 1))
 
     tag = 'PASS' if not errs else 'FAIL'
     print('[%s] %s' % (tag, path))

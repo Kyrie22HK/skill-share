@@ -44,7 +44,7 @@ description: 撰写双版（md+html）工作报告。当用户要求"出工作�
 
 - 左侧固定目录 `side-toc` + **scroll-spy** 高亮（嵌套：部分标签 `.pt` + 小节链接）。
 - 顶部滚动进度条 `#prog` + 回到顶部按钮。
-- 每张 SVG 图**点击 → 暗色灯箱**（滚轮缩放 + ＋/−/⟳/✕ 按钮 + Esc/点空白关闭）。
+- 每张 SVG 图**点击 → 暗色灯箱**（滚轮缩放 + ＋/−/⟳/✕ 按钮 + Esc/点空白关闭）。灯箱 JS 只绑定 `figure.diagram .scroll`——内容片段里每张图必须按 `figure.diagram > div.scroll > svg` + figcaption 结构写，缺 `.scroll` 层则点击放大/悬浮提示/宽图横向滚动全失效。
 - 以上 CSS/JS 由壳模板自带，经 `assemble.py` 组装获得，保持跨报告一致性。
 
 ## 六、SVG 流程图规则
@@ -62,7 +62,8 @@ description: 撰写双版（md+html）工作报告。当用户要求"出工作�
 2. TOC↔id：每个侧栏锚点在正文有对应 `id`；**id 不得数字开头**（scroll-spy 会整体崩掉连带灯箱失效）；
 3. SVG 文本溢出全量估算为零；
 4. 无 TODO/FIXME/`{{}}` 占位符；SVG 无裸 `&`；
-5. 长无空格标识符（路径/宏）所在 `code` 有 `overflow-wrap:break-word`。
+5. 长无空格标识符（路径/宏）所在 `code` 有 `overflow-wrap:break-word`；
+6. figure.diagram 结构：内含 svg 必须由 `<div class="scroll">` 包裹（灯箱 JS 只绑定 `figure.diagram .scroll`，缺层则灯箱/悬浮提示/横滚容器全失效）。
 
 ## 八、收尾动作
 

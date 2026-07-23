@@ -41,7 +41,7 @@ description: 制作单文件自包含 HTML 项目导览（给新接手者/想理
 
 - **左侧固定目录** `side-toc` + **scroll-spy** 高亮当前章节（嵌套：部分标签 `.pt` + 小节链接）；窄屏自动隐藏。
 - 顶部**滚动进度条** + **回到顶部**按钮。
-- 所有流程图用**内联 SVG**，低饱和配色（灰 `#A8A493`/青石 `#5E7287`/橄榄 `#6B7A4F`/赤陶 `#C2562F`/坏 `#B03A2E`/好 `#3F7D54`）；每张图**点击 → 暗色灯箱放大**（滚轮缩放 + ＋/−/⟳/✕ + Esc 关闭）。
+- 所有流程图用**内联 SVG**，低饱和配色（灰 `#A8A493`/青石 `#5E7287`/橄榄 `#6B7A4F`/赤陶 `#C2562F`/坏 `#B03A2E`/好 `#3F7D54`）；每张图**点击 → 暗色灯箱放大**（滚轮缩放 + ＋/−/⟳/✕ + Esc 关闭）；灯箱 JS 只绑定 `figure.diagram .scroll`，每张图必须按 `figure.diagram > div.scroll > svg` + figcaption 结构写，缺 `.scroll` 层则点击放大/悬浮提示/横向滚动全失效。
 - 以上由壳模板自带，经 `assemble.py` 组装获得，不要手写壳。
 
 ## 六、排版/布局规格（用户偏好，已验证）
@@ -57,7 +57,7 @@ description: 制作单文件自包含 HTML 项目导览（给新接手者/想理
 2. **SVG 框内文字必须放得进框**：逐个 `<text>` 估宽（中文 ≈ 字号 px/字、拉丁/数字 ≈ 0.55×字号、`text-anchor="middle"` 要两侧都留余量）≤ 容器宽；放不下就**加宽框 / 缩字号 / 精简文案**。**交付前对每张图全量排查溢出**。
 3. **长无空格标识符**（路径、宏、`a::b::c`）给 `code` 加 `overflow-wrap:break-word;word-break:break-word`，否则会撑破窄卡片/单元格。
 4. SVG 文本里的 `&`/`<` 要转义（`&amp;`/`&lt;`）；`<script>` 内的 `&&` 不用转义。
-5. **交付前自检**：跑 `work-report` skill 的 `scripts/selfcheck.py`（标签配平 / TOC↔id / id 非数字开头 / SVG 溢出估算 / 无占位符残留 / 裸 `&` / overflow-wrap），输出 PASS 才算交付。
+5. **交付前自检**：跑 `work-report` skill 的 `scripts/selfcheck.py`（标签配平 / TOC↔id / id 非数字开头 / SVG 溢出估算 / 无占位符残留 / 裸 `&` / overflow-wrap / figure.diagram 内 svg 带 div.scroll 包裹层），输出 PASS 才算交付。
 
 ## 八、收尾输出
 
