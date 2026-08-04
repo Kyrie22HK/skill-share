@@ -26,5 +26,6 @@ ln -s "$(pwd)/skills/work-report" ~/.claude/skills/work-report
 | work-report | 撰写双版（md+html）工作报告，自带壳模板/组装/自检脚本流水线 | kyrie |
 | project-tour | 制作单文件自包含 HTML 项目导览，给新接手者建立系统认知 | kyrie |
 | skill-intake | 制作新 skill 或把存量 skill 标准化后入库（含质量保护红线） | kyrie |
+| test-process-table-conversion-tool | 把公司软件测试流程表（Excel）转换为结构化分步测试用例表 | kyrie |
 
 新增 skill 见 [CONTRIBUTING.md](CONTRIBUTING.md)。
