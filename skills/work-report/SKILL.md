@@ -40,13 +40,13 @@ description: 撰写双版（md+html）工作报告。当用户要求"出工作�
 - 布局：内容区 `max-width:1280px` 居中 + 左侧 ~272px 实体目录栏（`@media(min-width:1341px)` 给 body 留 padding；窄屏侧栏隐藏复位）。避免 960 窄报告感与 1600+ 满屏两个极端。
 - 组件库（制造视觉节奏的手段，不靠文案煽情）：KPI 数字卡、结论卡变体（verdict/ok/warnc/lesson/note 左色条）、阶段时间线 `.phase`、对照表、pill 标签 `.tag`、事实芯片 `.chips`、`<details>` 折叠、内联 SVG 流程图。
 - 以上全部由 `scripts/shell_template.html` 提供，不要手写壳。
-- **截图对比墙**（第二节"视觉证据内嵌"的排版实现，壳模板外唯一例外，用内联样式）：两列网格 `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">` + `<figure style="margin:0">` + 小字 figcaption，无需改壳模板；灯箱只绑 SVG（`figure.diagram .scroll`），img 不参与灯箱，属预期行为。
+- **截图对比墙**（第二节"视觉证据内嵌"的排版实现，壳模板外唯一例外，用内联样式）：两列网格 `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">` + `<figure style="margin:0">` + 小字 figcaption，无需改壳模板；截图 `<img>` 由壳 JS 自动接入灯箱（点击放大），作者无需写任何附加结构或类名。
 
 ## 五、必备交互
 
 - 左侧固定目录 `side-toc` + **scroll-spy** 高亮（嵌套：部分标签 `.pt` + 小节链接）。
 - 顶部滚动进度条 `#prog` + 回到顶部按钮。
-- 每张 SVG 图**点击 → 暗色灯箱**（滚轮缩放 + ＋/−/⟳/✕ 按钮 + Esc/点空白关闭）。灯箱 JS 只绑定 `figure.diagram .scroll`——内容片段里每张图必须按 `figure.diagram > div.scroll > svg` + figcaption 结构写，缺 `.scroll` 层则点击放大/悬浮提示/宽图横向滚动全失效。
+- 每张 SVG 图与每张截图 `<img>` **点击 → 暗色灯箱**（滚轮缩放 + ＋/−/⟳/✕ 按钮 + Esc/点空白关闭）。SVG 侧灯箱只绑定 `figure.diagram .scroll`——内容片段里每张图必须按 `figure.diagram > div.scroll > svg` + figcaption 结构写，缺 `.scroll` 层则点击放大/悬浮提示/宽图横向滚动全失效。img 侧由壳 JS 自动包裹接入（链接内 img 除外），作者无需写结构。
 - 以上 CSS/JS 由壳模板自带，经 `assemble.py` 组装获得，保持跨报告一致性。
 
 ## 六、SVG 流程图规则

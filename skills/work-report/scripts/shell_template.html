@@ -86,6 +86,7 @@
     background:rgba(250,249,245,.92);border:1px solid var(--line);padding:2px 9px;border-radius:20px;
     opacity:0;transition:opacity .2s;pointer-events:none}
   .zoomable:hover::after{opacity:1}
+  .imgwrap{display:inline-block;max-width:100%;line-height:0}
   #lb{position:fixed;inset:0;z-index:300;display:none;background:rgba(33,32,28,.93)}
   #lb.open{display:block;animation:lbIn .2s ease}
   @keyframes lbIn{from{opacity:0}to{opacity:1}}
@@ -98,6 +99,7 @@
   #lb .lb-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:70px 36px 60px;overflow:hidden}
   #lb .lb-stage{transform-origin:center center;background:var(--bg);border-radius:14px;padding:24px 28px;max-width:100%}
   #lb .lb-stage svg{display:block;max-width:100%;height:auto}
+  #lb .lb-stage img{display:block;max-width:100%;max-height:calc(100vh - 180px);width:auto;height:auto}
   details{background:var(--card);border:1px solid var(--line);border-radius:9px;margin:13px 0;padding:0 18px}
   details summary{cursor:pointer;padding:13px 0;font-weight:600;color:var(--terra-soft);list-style:none}
   details summary::-webkit-details-marker{display:none}
@@ -172,6 +174,8 @@ function openLB(node){
   clone.classList.remove('zoomable');
   const svg = clone.tagName.toLowerCase() === 'svg' ? clone : clone.querySelector('svg');
   if (svg){ const w = Math.min(window.innerWidth - 140, 1600); svg.style.width = w + 'px'; svg.style.minWidth = '0'; }
+  if (clone.tagName.toLowerCase() === 'img'){ clone.style.width = 'auto'; clone.style.height = 'auto';
+    clone.style.maxWidth = Math.min(window.innerWidth - 140, 1600) + 'px'; }
   lbStage.appendChild(clone);
   zoom = 1; lb.classList.add('open'); document.body.style.overflow = 'hidden'; applyZoom();
 }
@@ -190,6 +194,14 @@ lb.addEventListener('wheel', e => { e.preventDefault(); setZoom(zoom * (e.deltaY
 document.querySelectorAll('figure.diagram .scroll').forEach(el => {
   el.classList.add('zoomable');
   el.addEventListener('click', () => openLB(el));
+});
+document.querySelectorAll('.wrap img').forEach(img => {
+  if (img.closest('a') || img.closest('figure.diagram')) return;
+  const w = document.createElement('span');
+  w.className = 'zoomable imgwrap';
+  img.parentNode.insertBefore(w, img);
+  w.appendChild(img);
+  w.addEventListener('click', () => openLB(img));
 });
 </script>
 </body>

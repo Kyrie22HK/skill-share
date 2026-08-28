@@ -52,6 +52,8 @@ def check(path):
                 errs.append('id 数字开头: %s（scroll-spy 会崩）' % a)
     if 'id="prog"' not in html: errs.append('缺进度条 #prog')
     if 'openLB' not in html: errs.append('缺灯箱脚本')
+    if '<img' in html and 'imgwrap' not in html:
+        errs.append('含 <img> 但壳无 img 灯箱接入（imgwrap）——壳版本过旧，用当前 shell_template.html 重组装')
 
     # 3 SVG 文本溢出估算：text 锚点落在某 rect 内则按锚定方式检查
     for si, svg in enumerate(re.findall(r'<svg.*?</svg>', html, re.S)):
