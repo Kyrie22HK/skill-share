@@ -1,34 +1,34 @@
 #!/bin/bash
-# 共享硬件资源锁（租约制）。资源表在 wt.conf 的 LOCK_RESOURCES。
+# 设备锁（租约制）。设备在本轮任务里登记：pdw.sh device add / rm（登记在 .pdw/devices/）。
 #
 # 为什么是租约而不是进程级 flock：一条线拿到板子后会连着做「投板 → 冒烟 → 看日志」好几条命令，
-# 中间没有常驻进程能攥住 fd；所以锁是一个文件，记持有线、用途、到期时刻，由人和工具共同遵守。
+# 中间没有常驻进程能攥住 fd；所以锁是一个文件，记持有线、用途、到期时刻，由会话和（接入了 need_lock 的）工具共同遵守。
 #
 # 用法：
-#   lock.sh take <res> "<用途>" [--ttl 30m] [--wait] [--force]
+#   lock.sh take <设备> "<用途>" [--ttl 30m] [--wait] [--force]
 #                                        拿锁。被占就失败；--wait 进先来先得队列，轮到自己才拿；
 #                                        持有者已过期也不自动抢——过期不等于不用，先问持有线，确认后 --force
-#   lock.sh hold <res> --next <N>m "<原因>" [--long]
-#                                        暂时离开硬件但很快还要用：登记预估空档，租约续到 N + 余量，
-#                                        status 显示「闲置·预计 N 分钟后再用」。N ≥ 该资源的阈值即拒绝——该回基线放锁
-#   lock.sh release <res>|--all [--force]  放锁（只放自己这条线持有的）；有人排队时提示队首
-#   lock.sh check <res>                  当前线是否持有且未过期：0 是 / 1 否（脚本内部用）
-#   lock.sh touch <res>                  记「最近使用」并续租、清闲置标记（need_lock 每次放行时调）
-#   lock.sh status                       全部资源：谁持有、使用中还是闲置、还剩多久、排队、过期标红
-#   lock.sh run <res>[,<res>…] "<用途>" -- <命令…>   排队拿到即跑、跑完即放（单条命令的快路径）
-#   lock.sh renew <res> [--ttl 30m]      续期
+#   lock.sh hold <设备> --next <N>m "<原因>" [--long]
+#                                        暂时离开设备但很快还要用：登记预估空档，租约续到 N + 余量，
+#                                        status 显示「闲置·预计 N 分钟后再用」。N ≥ 该设备的阈值即拒绝——该回基线放锁
+#   lock.sh release <设备>|--all [--force]  放锁（只放自己这条线持有的）；有人排队时提示队首
+#   lock.sh check <设备>                 当前线是否持有且未过期：0 是 / 1 否（脚本内部用）
+#   lock.sh touch <设备>                 记「最近使用」并续租、清闲置标记（need_lock 每次放行时调）
+#   lock.sh status                       全部设备：谁持有、使用中还是闲置、还剩多久、排队、过期标红
+#   lock.sh run <设备>[,<设备>…] "<用途>" -- <命令…>   排队拿到即跑、跑完即放（单条命令的快路径）
+#   lock.sh renew <设备> [--ttl 30m]     续期
 #   lock.sh whoami                       当前线名
 #
-# 离开硬件时的规则：不是一不用就让，而是每次离开硬件时预估下次要用还要多久——
-#   预估空档 ≥ 阈值（按归还成本定）就回基线放锁；没一会就要用的 hold 着并登记预估，等锁的线据此决定等还是先干别的。
+# 离开设备时的规则：不是一不用就让，而是每次离开时预估下次要用还要多久——
+#   预估空档 ≥ 阈值（登记设备时按归还成本定）就回基线放锁；没一会就要用的 hold 着并登记预估，等锁的线据此决定等还是先干别的。
 #
-# 「当前线」＝ WT_NAME（.wt.env 导出；wt_auto.sh 按目录向上找），找不到就是 main（集成线）。
-# 锁文件 <WT_ROOT>/.locks/<res>，一行一个 key=value；排队 <WT_ROOT>/.locks/<res>.q/<纳秒时间戳>_<pid>。
+# 「当前线」＝ PDW_LINE（.line.env 导出；按目录向上找），找不到就是 main（集成线）。
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
-source "$HERE/wt_auto.sh" || exit 1
-ME=$WT_NAME
-LOCKDIR=$WT_LOCKDIR
+source "$HERE/pdw_env.sh"
+pdw_need_task
+ME=$PDW_LINE
+LOCKDIR=$PDW_STATE/locks
 mkdir -p "$LOCKDIR"
 
 die() { echo "lock: $*" >&2; exit 1; }
@@ -44,12 +44,9 @@ ttl_secs() {
     esac
 }
 
-# 资源表：LOCK_RESOURCES 每行 <名>:<闲置上限分钟>:<说明>
-RESOURCES=(); declare -A IDLE_MAX=()
-for _r in "${LOCK_RESOURCES[@]}"; do
-    _n=${_r%%:*}; _rest=${_r#*:}
-    RESOURCES+=("$_n"); IDLE_MAX[$_n]=${_rest%%:*}
-done
+# 设备表：.pdw/devices/<名>，idle_max= 为闲置留锁上限（分钟）
+RESOURCES=($(dev_list)); declare -A IDLE_MAX=()
+for _r in "${RESOURCES[@]}"; do IDLE_MAX[$_r]=$(dev_field "$_r" idle_max); done
 DEFAULT_TTL=$(ttl_secs "${LOCK_DEFAULT_TTL:-30m}")
 IDLE_MARGIN=${LOCK_IDLE_MARGIN:-10}
 
@@ -134,7 +131,7 @@ try_take() {                      # res purpose ttl force myq → 0 拿到 / 1 �
 
 cmd_take() {
     local res=${1:-}; shift || true
-    valid_res "$res" || die "未知资源 $res（可用：${RESOURCES[*]}）"
+    valid_res "$res" || die "未登记的设备 $res（已登记：${RESOURCES[*]:-无}；登记用 pdw.sh device add）"
     local purpose=${1:-}; [[ -n $purpose && $purpose != --* ]] || die "要写用途：lock.sh take $res \"<用途>\""
     shift
     local ttl=$DEFAULT_TTL wait=no force=no
@@ -157,7 +154,11 @@ cmd_take() {
     local n=0 rc o p u left pos msg
     while true; do
         with_mutex try_take "$res" "$purpose" "$ttl" "$force" "$myq"; rc=$?
-        if (( rc == 0 )); then echo "🔒 $res ← $ME（$purpose，$((ttl / 60)) 分钟）"; return 0; fi
+        if (( rc == 0 )); then
+            echo "🔒 $res ← $ME（$purpose，$((ttl / 60)) 分钟）"
+            local bl; bl=$(dev_field "$res" baseline); [[ -n $bl ]] && echo "   放锁前回到基线：$bl"
+            return 0
+        fi
         o=$(held_by "$res"); p=$(rd "$res" purpose); u=$(rd "$res" until)
         left=$(( (${u:-0} - $(date +%s)) / 60 ))
         case $rc in
@@ -243,7 +244,8 @@ cmd_renew() {
 
 cmd_status() {
     local r o p u s used left state mark now f n; now=$(date +%s)
-    printf '%-14s %-12s %-8s %s\n' 资源 持有者 剩余 状态·用途
+    (( ${#RESOURCES[@]} )) || { echo "（本轮还没有登记设备：pdw.sh device add <名> --idle <分钟> …）"; return 0; }
+    printf '%-14s %-12s %-8s %s\n' 设备 持有者 剩余 状态·用途
     for r in "${RESOURCES[@]}"; do
         o=$(held_by "$r")
         if [[ -z $o ]]; then
@@ -267,7 +269,7 @@ cmd_status() {
             printf '%-14s   排队 %d：%s（%s，已等 %d 分钟）\n' "" "$n" "$(qfield "$r" "$f" line)" "$(qfield "$r" "$f" purpose)" $(( (now - ${f%%_*} / 1000000000) / 60 ))
         done
     done
-    echo "（* = 当前线 $ME；离开硬件时：预计空档 ≥ 阈值就回基线放锁，否则 lock.sh hold <res> --next <N>m \"<原因>\"）"
+    echo "（* = 当前线 $ME；离开设备时：预计空档 ≥ 阈值就回基线放锁，否则 lock.sh hold <设备> --next <N>m \"<原因>\"）"
 }
 
 cmd_run() {
@@ -286,5 +288,5 @@ sub=${1:-}; shift || true
 case $sub in
     take|hold|touch|release|check|renew|status|run) "cmd_$sub" "$@" ;;
     whoami) echo "$ME" ;;
-    *) sed -n '2,29p' "$0"; exit 1 ;;
+    *) sed -n '2,24p' "$0"; exit 1 ;;
 esac
