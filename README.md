@@ -28,5 +28,6 @@ ln -s "$(pwd)/skills/work-report" ~/.claude/skills/work-report
 | skill-intake | 制作新 skill 或把存量 skill 标准化后入库（含质量保护红线） | kyrie |
 | test-process-table-conversion-tool | 把公司软件测试流程表（Excel）转换为结构化分步测试用例表 | kyrie |
 | leader | 把一句话的想法拆成 AI agent 能独立跑完的目标任务书（/goal 用），含防作弊验收与断点续跑 | kyrie |
+| parallel-dev-workflow | 多会话并行开发：一线一会话一 worktree，共享硬件走租约锁（排队、闲置留锁），集成线合并收口；自带 wt.sh / lock.sh 与自检 | kyrie |
 
 新增 skill 见 [CONTRIBUTING.md](CONTRIBUTING.md)。
