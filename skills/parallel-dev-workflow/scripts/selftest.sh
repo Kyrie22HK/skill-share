@@ -1,6 +1,6 @@
 #!/bin/bash
 # 自检：在临时目录里造两个 git 仓库，跑通一整轮并行开发任务——
-# init → 登记设备 → 开线 → 按目录识别当前线 → 用锁语义 → 中途加线 / 加设备 / 下线设备 → 收线 → close 归档 → 再开一轮。
+# init → 登记设备 → 开线 → 按目录识别当前线 → 用锁语义 → 中途加线 / 加设备 / 下线设备 → 收线 → close 归档 → 再开一轮（指定归档目录）并关闭。
 # 不碰任何真实项目；约 40 秒（排队用例要等轮询）。用法：bash selftest.sh   退出码 0 = 全过
 set -u
 SRC=$(cd "$(dirname "$0")" && pwd)
@@ -106,7 +106,10 @@ chk "全部收完后 close 成功" in_dir "$R" "$P" close
 chk ".pdw 已清理" test ! -e "$R/.pdw"
 chk "归档里有任务卡与三张线状态卡" bash -c "ls '$R'/.pdw-archive/*_demo/task.md && test \$(ls '$R'/.pdw-archive/*_demo/cards | wc -l) = 3"
 chk "关闭后没有任务，命令给出提示" bash -c "cd '$R' && '$P0' status 2>&1 | grep -q '没有进行中的并行开发任务'"
-chk "关闭后可以再开一轮" in_dir "$R" "$P0" init round2 --repo app=app
+chk "关闭后可以再开一轮（--archive 指定归档目录）" in_dir "$R" "$P0" init round2 --repo app=app --archive notes/rounds
+chk "conf 记下归档目录（相对根目录解析成绝对路径）" grep -qxF "PDW_ARCHIVE_DIR='$R/notes/rounds'" "$R/.pdw/conf.sh"
+chk "round2 无线无锁，close 成功" in_dir "$R" "$P" close
+chk "归档落到指定目录、不进 .pdw-archive" bash -c "ls '$R'/notes/rounds/*_round2/task.md && ! ls -d '$R'/.pdw-archive/*_round2"
 
 echo "== 结果：通过 $pass，失败 $fail"
 (( fail == 0 ))

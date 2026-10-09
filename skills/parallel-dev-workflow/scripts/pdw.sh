@@ -3,11 +3,11 @@
 # → 开发中随时加线 / 加减设备 → 各线合并后 line rm → 全部收完 close 关闭集成线（归档并清理），本轮结束。
 #
 # 任务：
-#   pdw.sh init <任务名> --repo <短名>=<路径>[@<基线分支>] [--repo …] [--root <根目录>]
+#   pdw.sh init <任务名> --repo <短名>=<路径>[@<基线分支>] [--repo …] [--root <根目录>] [--archive <归档目录>]
 #               [--port <变量>=<基数>[:<步长>]] [--env '<变量>=<模板>'] [--hardlink <短名>:<相对路径>] [--post-new '<命令>']
 #                                     在 <根>（缺省为当前目录）建 .pdw/：配置、任务卡、设备登记、锁、脚本副本
 #   pdw.sh status                     本轮总览：设备与锁、各线分支状态、集成线各仓库状态
-#   pdw.sh close [--force]            关闭集成线：还有线没收、还有别人持锁就拒绝；归档到 .pdw-archive/ 并清理
+#   pdw.sh close [--force]            关闭集成线：还有线没收、还有别人持锁就拒绝；归档（缺省 <根>/.pdw-archive/）并清理
 # 设备：
 #   pdw.sh device add <名> --idle <分钟> [--desc "<说明>"] [--ip <IP>] [--baseline "<放锁前要回到的状态>"]
 #   pdw.sh device rm <名> [--force]    下线设备（被持锁或有人排队就拒绝）
@@ -28,10 +28,11 @@ now() { date '+%m-%d %H:%M'; }
 # ---------------- init（不需要已有任务）----------------
 cmd_init() {
     local task=${1:-}; [[ -n $task && $task != --* ]] || die "pdw.sh init <任务名> --repo <短名>=<路径>[@<基线>] …"; shift
-    local root=$PWD repos=() ports=() envs=() hls=() post=""
+    local root=$PWD repos=() ports=() envs=() hls=() post="" archive=""
     while [[ $# -gt 0 ]]; do
         case $1 in
             --root) root=$2; shift 2 ;;
+            --archive) archive=$2; shift 2 ;;
             --repo) repos+=("$2"); shift 2 ;;
             --port) ports+=("$2"); shift 2 ;;
             --env) envs+=("$2"); shift 2 ;;
@@ -41,6 +42,7 @@ cmd_init() {
         esac
     done
     root=$(cd "$root" && pwd)
+    [[ -z $archive || $archive == /* ]] || archive=$root/$archive
     [[ ! -e $root/.pdw ]] || die "$root 已有进行中的任务（.pdw/）。先 pdw.sh close，或换根目录"
     (( ${#repos[@]} )) || die "至少给一个 --repo <短名>=<路径>[@<基线分支>]"
     local r name path base var lines=()
@@ -73,6 +75,8 @@ cmd_init() {
         echo "# 新 worktree 里从主目录硬链接拷一份的大目录：<短名>:<相对路径>"
         echo "PDW_HARDLINK_DIRS=("; for r in "${hls[@]:-}"; do [[ -n $r ]] && echo "    \"$r\""; done; echo ")"
         printf 'PDW_POST_NEW=%q\n' "$post"
+        echo "# 关闭一轮时归档到哪个目录（空＝<根>/.pdw-archive；项目有自己的工作区 / 文档目录时用 init --archive 指过去）"
+        echo "PDW_ARCHIVE_DIR='$archive'"
         echo "LOCK_DEFAULT_TTL=30m"
         echo "LOCK_IDLE_MARGIN=10"
     } >"$root/.pdw/conf.sh"
@@ -373,7 +377,7 @@ cmd_close() {
     done
     [[ -z $held || $force == --force ]] || die "还有锁被别的身份持有：$held（确认无人在用再 --force）"
     local stamp; stamp=$(date +%Y%m%d-%H%M)
-    local arch=$PDW_ROOT/.pdw-archive/${stamp}_$PDW_TASK
+    local arch=${PDW_ARCHIVE_DIR:-$PDW_ROOT/.pdw-archive}/${stamp}_$PDW_TASK
     event "关闭集成线：本轮结束（已收 $(ls "$CARDS/_done" | wc -l) 条线）"
     mkdir -p "$arch"
     cp -a "$PDW_STATE/task.md" "$PDW_STATE/conf.sh" "$PDW_STATE/devices" "$arch/"
