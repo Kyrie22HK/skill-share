@@ -87,6 +87,8 @@
     opacity:0;transition:opacity .2s;pointer-events:none}
   .zoomable:hover::after{opacity:1}
   .imgwrap{display:inline-block;max-width:100%;line-height:0}
+  figure.video{margin:20px 0}
+  figure.video video{display:block;width:100%;max-height:78vh;background:#000;border:1px solid var(--line);border-radius:12px;object-fit:contain}
   #lb{position:fixed;inset:0;z-index:300;display:none;background:rgba(33,32,28,.93)}
   #lb.open{display:block;animation:lbIn .2s ease}
   @keyframes lbIn{from{opacity:0}to{opacity:1}}
@@ -195,6 +197,25 @@ document.querySelectorAll('figure.diagram .scroll').forEach(el => {
   el.classList.add('zoomable');
   el.addEventListener('click', () => openLB(el));
 });
+// 内嵌视频：base64 放在 type 为 application/octet-stream 的 script 数据块里，接近视口时转成 Blob 地址交给视频元素
+// （大段 data: URI 视频在 Safari 上不稳；Blob 地址各浏览器都能拖动进度、全屏）。片段由 scripts/embed_video.py 生成
+function hydrateVideo(v){
+  if (v.dataset.ready) return;
+  const s = document.getElementById(v.dataset.src);
+  if (!s) return;
+  v.dataset.ready = '1';
+  const bin = atob(s.textContent.replace(/\s+/g, ''));
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  v.src = URL.createObjectURL(new Blob([buf], {type: s.dataset.mime || 'video/mp4'}));
+}
+const vids = [...document.querySelectorAll('video[data-src]')];
+if ('IntersectionObserver' in window){
+  const vio = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting){ hydrateVideo(e.target); vio.unobserve(e.target); }
+  }), {rootMargin: '600px 0px'});
+  vids.forEach(v => vio.observe(v));
+} else vids.forEach(hydrateVideo);
 document.querySelectorAll('.wrap img').forEach(img => {
   if (img.closest('a') || img.closest('figure.diagram')) return;
   const w = document.createElement('span');

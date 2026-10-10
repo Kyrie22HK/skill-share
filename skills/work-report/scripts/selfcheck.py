@@ -9,10 +9,12 @@
  4. 无 TODO/FIXME/{{}} 占位；SVG 文本无裸 &
  5. code 元素 overflow-wrap（模板 CSS 全局已保证，验证样式存在）
  6. figure.diagram 结构：svg 必须由 <div class="scroll"> 包裹（灯箱 JS 只绑定 figure.diagram .scroll）
+ 7. 内嵌视频（scripts/embed_video.py 生成）：每个 <video> 有封面、data-src 指向存在的数据块、不用 src="data:"；
+    figure.video 有 figcaption；单段 ≤ 4 MB、合计 > 8 MB 警告 / > 16 MB 报错；壳含 hydrateVideo
 """
 import sys, re, io, unicodedata
 
-TAGS = ['svg','table','details','pre','figure','div','h2','h3','tr','td','th','ul','ol','li']
+TAGS = ['svg','table','details','pre','figure','div','h2','h3','tr','td','th','ul','ol','li','video']
 
 def text_width(s, fs):
     w = 0.0
@@ -28,6 +30,13 @@ def text_width(s, fs):
 def check(path):
     html = io.open(path, encoding='utf-8').read()
     errs, warns = [], []
+
+    # 视频数据块（base64）先摘出来：其中可能碰巧出现 TODO 之类字样，其余各项只查摘除后的正文
+    blobs = {}
+    def take(m):
+        blobs[m.group(1)] = len(re.sub(r'\s+', '', m.group(2)))
+        return ''
+    html = re.sub(r'<script type="application/octet-stream" id="([^"]+)"[^>]*>(.*?)</script>', take, html, flags=re.S)
 
     # 1 标签配平
     for t in TAGS:
@@ -130,6 +139,34 @@ def check(path):
     for fi, fig in enumerate(re.findall(r'<figure class="diagram"[^>]*>.*?</figure>', html, re.S)):
         if '<svg' in fig and not re.search(r'<div class="scroll"[^>]*>\s*<svg', fig, re.S):
             errs.append('figure.diagram#%d 的 svg 缺 <div class="scroll"> 包裹（灯箱/横滚/悬浮提示全失效）' % (fi + 1))
+
+    # 7 内嵌视频
+    vids = re.findall(r'<video\b[^>]*>', html)
+    for vi, v in enumerate(vids):
+        if 'src="data:' in v:
+            errs.append('video#%d 用了 src="data:…"（Safari 不稳）：改用 embed_video.py 生成的数据块 + data-src' % (vi + 1))
+        if 'poster="' not in v:
+            errs.append('video#%d 缺 poster 封面' % (vi + 1))
+        m = re.search(r'data-src="([^"]+)"', v)
+        if m and m.group(1) not in blobs:
+            errs.append('video#%d data-src="%s" 找不到对应数据块' % (vi + 1, m.group(1)))
+        if m and m.group(1)[:1].isdigit():
+            errs.append('video#%d 的 id 数字开头：%s' % (vi + 1, m.group(1)))
+    for fi, fig in enumerate(re.findall(r'<figure class="video"[^>]*>.*?</figure>', html, re.S)):
+        if '<figcaption' not in fig:
+            errs.append('figure.video#%d 缺 figcaption' % (fi + 1))
+    if vids and 'hydrateVideo' not in html:
+        errs.append('含 <video> 但壳无视频接入脚本（hydrateVideo）——用当前 shell_template.html 重组装')
+    total = 0
+    for k, n in blobs.items():
+        size = n * 3 // 4
+        total += size
+        if size > 4 * 1048576:
+            errs.append('视频数据块 %s 约 %.1f MB，超过单段 4 MB' % (k, size / 1048576))
+    if total > 16 * 1048576:
+        errs.append('内嵌视频合计约 %.1f MB，超过 16 MB 上限' % (total / 1048576))
+    elif total > 8 * 1048576:
+        warns.append('内嵌视频合计约 %.1f MB，超过 8 MB 建议值' % (total / 1048576))
 
     tag = 'PASS' if not errs else 'FAIL'
     print('[%s] %s' % (tag, path))
