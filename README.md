@@ -43,12 +43,12 @@ Claude / Codex 共用同一份规格、脚本和质量要求，不维护两套�
 | 名称 | 用途 | 负责人 |
 |------|------|--------|
 | [claude-to-codex-workspace](skills/claude-to-codex-workspace/SKILL.md) | 将现有 Claude 工作区适配为 Codex，保留任务接续、项目边界和证据，附迁移模式与验收清单 | kyrie |
-| ai-workspace-setup | 为新项目搭建 `_ai_workspace` AI 协作工作区（跨 session 记忆框架） | kyrie |
-| work-report | 撰写双版（md+html）工作报告，自带共享壳、组装、结构检查与浏览器实跑流水线 | kyrie |
-| project-tour | 制作单文件自包含 HTML 项目导览，给新接手者建立系统认知 | kyrie |
-| skill-intake | 制作新 skill 或把存量 skill 标准化后入库（含质量保护红线） | kyrie |
-| test-process-table-conversion-tool | 把公司软件测试流程表（Excel）转换为结构化分步测试用例表 | kyrie |
-| leader | 把一句话的想法拆成适配实际客户端的目标任务书，含防作弊验收与断点续跑 | kyrie |
-| parallel-dev-workflow | 一轮多会话并行开发任务：问清功能与设备 → 建集成线、设备锁、功能线（一线一会话一 worktree）→ 运行中加线 / 加减设备 → 全部收线后关闭集成线；自带 pdw.sh / lock.sh 与自检 | kyrie |
+| [ai-workspace-setup](skills/ai-workspace-setup/SKILL.md) | 为新项目搭建 `_ai_workspace` AI 协作工作区（跨 session 记忆框架） | kyrie |
+| [work-report](skills/work-report/SKILL.md) | 撰写双版（md+html）工作报告，自带共享壳、组装、结构检查与浏览器实跑流水线 | kyrie |
+| [project-tour](skills/project-tour/SKILL.md) | 制作单文件自包含 HTML 项目导览，给新接手者建立系统认知 | kyrie |
+| [skill-intake](skills/skill-intake/SKILL.md) | 制作新 skill 或把存量 skill 标准化后入库（含质量保护红线） | kyrie |
+| [test-process-table-conversion-tool](skills/test-process-table-conversion-tool/SKILL.md) | 把公司软件测试流程表（Excel）转换为结构化分步测试用例表 | kyrie |
+| [leader](skills/leader/SKILL.md) | 把一句话的想法拆成适配实际客户端的目标任务书，含防作弊验收与断点续跑 | kyrie |
+| [parallel-dev-workflow](skills/parallel-dev-workflow/SKILL.md) | 一轮多会话并行开发任务：问清功能与设备 → 建集成线、设备锁、功能线（一线一会话一 worktree）→ 运行中加线 / 加减设备 → 全部收线后关闭集成线；自带 pdw.sh / lock.sh 与自检 | kyrie |
 
 新增 skill 见 [CONTRIBUTING.md](CONTRIBUTING.md)。
