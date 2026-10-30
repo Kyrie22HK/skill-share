@@ -12,7 +12,8 @@
  7. 内嵌视频（scripts/embed_video.py 生成）：每个 <video> 有封面、data-src 指向存在的数据块、不用 src="data:"；
     figure.video 有 figcaption；单段 ≤ 4 MB、合计 > 8 MB 警告 / > 16 MB 报错；壳含 hydrateVideo
 """
-import sys, re, io, unicodedata
+import sys, re, io, unicodedata, argparse
+from quality_check import check_quality
 
 TAGS = ['svg','table','details','pre','figure','div','h2','h3','tr','td','th','ul','ol','li','video']
 
@@ -27,7 +28,7 @@ def text_width(s, fs):
             w += fs * 0.55
     return w
 
-def check(path):
+def check(path, profile=None):
     html = io.open(path, encoding='utf-8').read()
     errs, warns = [], []
 
@@ -148,6 +149,8 @@ def check(path):
         if 'poster="' not in v:
             errs.append('video#%d 缺 poster 封面' % (vi + 1))
         m = re.search(r'data-src="([^"]+)"', v)
+        if not m:
+            errs.append('video#%d 缺 data-src，无法接入内嵌数据块' % (vi + 1))
         if m and m.group(1) not in blobs:
             errs.append('video#%d data-src="%s" 找不到对应数据块' % (vi + 1, m.group(1)))
         if m and m.group(1)[:1].isdigit():
@@ -168,6 +171,9 @@ def check(path):
     elif total > 8 * 1048576:
         warns.append('内嵌视频合计约 %.1f MB，超过 8 MB 建议值' % (total / 1048576))
 
+    if profile:
+        errs.extend(check_quality(path, profile))
+
     tag = 'PASS' if not errs else 'FAIL'
     print('[%s] %s' % (tag, path))
     for e in errs:
@@ -177,5 +183,9 @@ def check(path):
     return not errs
 
 if __name__ == '__main__':
-    ok = all([check(p) for p in sys.argv[1:]])
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--profile', choices=['report', 'tour'], help='追加共享壳、资源和对应产物结构检查；仍需真实浏览器与内容审读')
+    parser.add_argument('paths', nargs='+')
+    args = parser.parse_args()
+    ok = all([check(p, args.profile) for p in args.paths])
     sys.exit(0 if ok else 1)

@@ -12,7 +12,7 @@
   --speed 倍数     播放速度（缺省 1；0.5＝半速，界面过渡这类一闪而过的动画放慢看；图注里注明）
   --poster-at 秒   封面取第几秒（相对截取后的片段，缺省 0.5）
 产物:
-  <前缀>.mp4         转码后的演示视频（H.264 / yuv420p / faststart / 无音轨），md 版引用、随报告归档
+  <前缀>.mp4         转码后的演示视频（H.264 / yuv420p / faststart / 无音轨），留在证据目录，不作为 md 附件引用
   <前缀>.poster.jpg  封面
   <前缀>.frag.html   粘进内容片段的 HTML：figure.video（含 base64 封面）+ 视频数据块
                      <script type="application/octet-stream" id="…">；壳模板的脚本在视频接近视口时把它转成 Blob 地址播放
@@ -100,8 +100,7 @@ def main():
           '  ⚠ 超过 2 MB 建议值' if size > WARN_BYTES else ''))
     print('封面   %s' % poster)
     print('片段   %s（id=%s，内嵌后约 %.2f MB）' % (frag, vid, len(html.encode()) / 1048576))
-    print('md 版  ![%s](%s)  后接一行  [▶ %s](%s)' % (a.caption, os.path.basename(poster),
-          a.caption, os.path.basename(mp4)))
+    print('md 版  ▶ %s（视频见 HTML 版）；转码原件留在证据目录' % a.caption)
 
 
 if __name__ == '__main__':

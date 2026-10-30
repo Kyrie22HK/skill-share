@@ -16,6 +16,15 @@
     font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
     line-height:1.82;font-size:17.5px}
   .wrap{max-width:1280px;margin:0 auto;padding:52px 52px 130px}
+  .image-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .image-grid figure{margin:0;min-width:0}
+  .wrap img{max-width:100%;height:auto}
+  @media(max-width:700px){
+    .wrap{padding:28px 20px 80px}
+    h1{overflow-wrap:anywhere}
+    .wrap table{display:block;max-width:100%;overflow-x:auto}
+    .image-grid{grid-template-columns:1fr}
+  }
   @media(min-width:1341px){body{padding-left:272px}}
   #prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--terra),var(--terra-soft));z-index:400;transition:width .1s}
   .side-toc{position:fixed;left:0;top:0;width:256px;height:100vh;overflow-y:auto;
@@ -146,7 +155,14 @@ const tocLinks = [...document.querySelectorAll('.side-toc a')];
 const secs = tocLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
 function spy(){
   let cur = secs[0];
-  for (const s of secs){ if (s.getBoundingClientRect().top <= 130) cur = s; }
+  for (const s of secs){
+    const offset = parseFloat(getComputedStyle(s).scrollMarginTop) || 0;
+    if (s.getBoundingClientRect().top <= offset + 2) cur = s;
+  }
+  const page = document.documentElement;
+  if (page.scrollHeight > page.clientHeight && page.scrollTop + page.clientHeight >= page.scrollHeight - 2){
+    cur = secs[secs.length - 1] || cur;
+  }
   if(!cur) return;
   tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur.id));
 }
